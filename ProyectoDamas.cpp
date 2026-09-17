@@ -3,7 +3,6 @@
 using namespace std;
 
 int tablero[8][8];
-
 void InicializarTablero(){
     for(int f=0; f<8; f++)
         for(int c=0; c<8; c++)
@@ -21,7 +20,7 @@ void InicializarTablero(){
 }
 
 void MostrarTablero(){
-    cout << "\n0 1 2 3 4 5 6 7\n";
+    cout << "\n  0 1 2 3 4 5 6 7\n";
     for(int f=0; f<8; f++){
         cout << f << " ";
         for(int c=0; c<8; c++){
@@ -72,6 +71,29 @@ void MovimientosTablero(int fo, int co, int fd, int cd){
     if(tablero[fd][cd]==2 && fd==7) tablero[fd][cd]=4;
 }
 
+    bool Comer(int f, int c){
+        int pieza = tablero[f][c];
+        if (pieza==0) return false; //Revisa 4 diagonales
+        int dirs[4][2] = {{-1,-1},{-1,1},{1,-1},{1,1}};
+         for(int d=0; d<4; d++){
+             int df=dirs[d][0];
+             int dc=dirs[d][1];
+             if(pieza==1 && df>0) continue; //Impide que blanca avance a abajo
+             if(pieza==2 && df<0) continue; //Impide que negra avance a arriba
+             int fm=f+df, cm=c+dc; //Enemigo
+             int fd=f+2*df, cd=c+2*dc;//Salto
+                     if(fd<0||fd>=8||cd<0||cd>=8) continue;
+        if(tablero[fd][cd]!=0) continue;
+
+        int enemigo = tablero[fm][cm];
+        if(pieza==1 && (enemigo==2||enemigo==4)) return true;
+        if(pieza==2 && (enemigo==1||enemigo==3)) return true;
+        if(pieza==3 && (enemigo==2||enemigo==4)) return true; // Dama
+        if(pieza==4 && (enemigo==1||enemigo==3)) return true; // Dama
+    }
+    return false;
+}
+
 int main(){
     InicializarTablero();
     int turno = 1;
@@ -104,27 +126,4 @@ int main(){
         }
     }
     return 0;
-    
-    bool Comer(int f, int c){
-        int pieza = tablero[f][c];
-        if (pieza==0) return false; //Revisa 4 diagonales
-        int dirs[4][2] = {{-1,-1},{-1,1},{1,-1},{1,1}};
-         for(int d=0; d<4; d++){
-             int df=dirs[d][1];
-             int dc=dirs[d][1];
-             if(pieza==1 && df<0) continue; //Impide que blanca avance a abajo
-             if(pieza==2 && df<0) continue; //Impide que negra avance a arriba
-             int fm=f+df, cm=c+dc; //Enemigo
-             int fd=f+2*df, cd=c+2*dc;//Salto
-                     if(fd<0||fd>=8||cd<0||cd>=8) continue;
-        if(tablero[fd][cd]!=0) continue;
-
-        int enemigo = tablero[fm][cm];
-        if(pieza==1 && (enemigo==2||enemigo==4)) return true;
-        if(pieza==2 && (enemigo==1||enemigo==3)) return true;
-        if(pieza==3 && (enemigo==2||enemigo==4)) return true; // Dama
-        if(pieza==4 && (enemigo==1||enemigo==3)) return true; // Dama
-    }
-    return false;
-}
 }
