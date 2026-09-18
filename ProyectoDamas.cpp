@@ -22,7 +22,7 @@ void MostrarTablero(){
     string R="\033[91;1m";
     string A="\033[93;1m";
 
-    cout<<"\n------ 0   1   2   3   4   5   6   7---\n";
+    cout<<"\n------- 0  1  2  3  4  5  6  7---\n";
     for(int f=0; f<8; f++){
         cout << " . " << f << " . ";
         for(int c=0; c<8; c++){
@@ -36,7 +36,7 @@ void MostrarTablero(){
         }
         cout << " " << f << endl;
     }
-    cout << " 0 1 2 3 4 5 6 7\n";
+    cout << "------- 0  1  2  3  4  5  6  7---\n";
 }
 
 bool Comer(int f, int c){
