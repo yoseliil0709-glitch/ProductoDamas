@@ -94,8 +94,11 @@ bool esMovimientoValido(int fo, int co, int fd, int cd, int turno){
     if(fd<0||fd>=8||cd<0||cd>=8) return false;
     if(tablero[fd][cd]!=0) return false;
     if(abs(fd-fo)!=abs(cd-co)) return false;
+
     bool Captura=abs(fd-fo)==2;
+
     if(ComerAFuerzas(turno) &&!Captura) return false;
+
     int pieza=tablero[fo][co];
     if(abs(fd-fo)==1){
         if(pieza==1 && fd>fo) return false;
@@ -126,6 +129,28 @@ void MovimientosTablero(int fo, int co, int fd, int cd){
     if(tablero[fd][cd]==2 && fd==7) tablero[fd][cd]=4;
 }
 
+bool TieneMovimientos(int turno){
+    for(int f=0; f<8; f++) 
+        for(int c=0; c<8; c++){
+            int p = tablero[f][c];
+            if(turno==1 && (p!=1 && p!=3)){
+            continue;
+            } 
+            if(turno==2 && (p!=2 && p!=4)){
+            continue;
+            } 
+            
+            int dirs[4][2]={{-1,-1},{-1,1},{1,-1},{1,1}};
+            for(int d=0; d<4; d++){
+                int nf=f+dirs[d][0], nc=c+dirs[d][1];
+                if(nf>=0&&nf<8&&nc>=0&&nc<8 && tablero[nf][nc]==0) return true;
+                int nf2=f+2*dirs[d][0], nc2=c+2*dirs[d][1];
+                if(nf2>=0&&nf2<8&&nc2>=0&&nc2<8 && tablero[nf2][nc2]==0 && tablero[nf][nc]!=0 && tablero[nf][nc]!=p) return true;
+            }
+        }
+    return false;
+}
+
 //Inica el juego
 //Pone el turno=1
 //Repite la accion de mostrar
@@ -138,7 +163,10 @@ void MovimientosTablero(int fo, int co, int fd, int cd){
 //Si no se puede se cambia al otro jugador
 int main(){
     //Se llena el tablero de 0 y despues se ponen las fichas
-    InicializarTablero(); int turno=1, fo,co,fd,cd;
+    InicializarTablero(); 
+    int turno = 1, fo,co,fd,cd;
+    char accion;
+
     while(true){
         MostrarTablero();
         cout<<"\nFichas Blancas: "<<contarFichas(1)<<" | Negras: "<<contarFichas(2)<<endl;
@@ -146,20 +174,102 @@ int main(){
         if(contarFichas(1)==0){cout<<"\nGANAN NEGRAS\n"; break;}
         if(contarFichas(2)==0){cout<<"\nGANAN BLANCAS\n"; break;}
 
+        if(!TieneMovimientos(turno)){
+        cout << "\nGANAN " << (turno==1?"NEGRAS":"BLANCAS") << " (rival sin movimientos)\n";
+        break;
+        }
+        
         cout<<"\nTurno "<<(turno==1?"BLANCAS (b)":"NEGRAS (n)")<<endl;
-        cout<<"Origen fila y columna ejem *[4 3]*: "; cin>>fo>>co;
-        cout<<"Destino fila y columna ejem *[4 3]*: "; cin>>fd>>cd;
+        cout << "(O) Origen | (X) Rendirse";
+        cin >> accion;
 
-        if(fo<0||fo>=8||co<0||co>=8){cout<<"Origen fuera\n"; continue;}
+        if(accion=='X' || accion=='x'){
+        cout << "\nGanan " << (turno==1?"NEGRAS":"BLANCAS") << " por rendicion\n";
+        break; // Sale del while(true) y termina el juego
+        }
 
-        if(turno==1 && tablero[fo][co]!=1 && tablero[fo][co]!=3){cout<<"Esa ficha blanca no es tuya, vuelve a seleccionar\n"; continue;}
-        if(turno==2 && tablero[fo][co]!=4){cout<<"Esa ficha negra no es tuya, vuelve a seleccionar\n"; continue;}
+        if(accion != 'O' && accion != 'o'){
+            cout << "Opcion incorrecta\n";
+            continue;
+        }
+
+        cout<<"Origen fila y columna ejem *[4 3]*: ";
+        cin>>fo>>co;
+
+        if(turno==1 && tablero[fo][co]!=1 && tablero[fo][co]!=3){
+            cout<<"Esa ficha blanca no es tuya, vuelve a seleccionar\n"; 
+            continue;
+        }
+        if(turno==2 && tablero[fo][co]!=2 && tablero[fo][co]!=4){
+            cout<<"Esa ficha negra no es tuya, vuelve a seleccionar\n"; 
+            continue;
+        }
+
+         char dir;
+         cout << "(I) Izquierda o (D) Derecha: ";
+         cin >> dir;
+
+        int sent = 1;
+        if (tablero[fo][co]==3 || tablero[fo][co]==4){
+            char s;
+            cout << "Es una dama. (A) Avanzar o (R) Retroceder";
+            cin >> s;
+            if(s=='R' || s=='r') sent = -1;
+        }
+
+        int fm = (turno == 1) ? (fo + (sent * -1)) : (fo + (sent * 1));
+        int cm_Izq = co - 1;
+        int cm_Der = co + 1;
+        int enem = 0;
+
+        if (dir == 'I' || dir == 'i'){
+            if (fm >= 0 && fm < 8 && cm_Izq >= 0 && cm_Izq < 8){
+                enem = tablero[fm][cm_Izq];
+            }
+         } else if (dir == 'D' || dir == 'd'){
+            if (fm >= 0 && fm < 8 && cm_Der >= 0 && cm_Der < 8){
+                enem = tablero[fm][cm_Der];
+            }
+         } else {
+            cout << "Direccion incorrecta\n";
+            continue;
+         }         
+
+        int salto = (enem != 0) ? 2 : 1;
+
+        if (turno == 1){
+           fd = fo - (salto * sent);
+        } else {
+            fd = fo + (salto * sent);
+        }
+
+        if (dir == 'I' || dir == 'i'){
+            cd = co - salto;
+        } else {
+            cd = co + salto;
+        }
+
+        if (fd < 0 || fd >= 8 || cd < 0 || cd >= 8){
+            cout << "Moviento fuera del tablero\n";
+            continue;
+        }
+
+        if (enem == 0 && tablero[fd][cd] != 0){
+        cout << "Espacio ocupado\n";
+        continue;
+        }
 
         if(esMovimientoValido(fo,co,fd,cd,turno)){
             MovimientosTablero(fo,co,fd,cd);
-            if(abs(fd-fo)==2 && Comer(fd,cd)){cout<<"¡¡Continua comiendo con la misma ficha!!\n"; continue;}
+
+            if(abs(fd-fo)==2 && Comer(fd,cd)){
+                cout<<"¡¡Continua comiendo con la misma ficha!!\n";
+                continue;
+            }
             turno=(turno==1)?2:1;
-        }else cout<<"Lo siento, no se puede realizar el movimiento deseado\n";
+        }else {
+            cout<<"Lo siento, no se puede realizar el movimiento deseado\n";
+        }
     }
     return 0;
 }
