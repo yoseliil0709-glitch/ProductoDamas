@@ -9,7 +9,7 @@ using namespace std;
 int tablero[8][8];
 //Diseño 0=Vacio, 1=blanca (b), 2=negra (n), 3=Dama blanca (B), 4=Dama negra (N)
 struct Mov {
-    int fo, co, fd, cd; //Fila y columna de origen y destino
+    int filaOri, colOri, fd, cd; //Fila y columna de origen y destino
     int fichaMov; //Valor de la ficha que se movio
     int fichaCom; //Valor de la ficha comida
 };
@@ -18,15 +18,14 @@ vector<Mov> historial; //Guarda los movimientos
 int turnoGua = 1; //Turno actual para reanudar
 
 void InicializarTablero(){
-    for(int f=0; f<8; f++) for(int c=0; c<8; c++) tablero[f][c]=0;
-    for(int f=0; f<3; f++) for(int c=0; c<8; c++) if((f+c)%2==1) tablero[f][c]=2;
-    for(int f=5; f<8; f++) for(int c=0; c<8; c++) if((f+c)%2==1) tablero[f][c]=1;
+    for(int f=0; f<8; f++) for(int c=0; c<8; c++) tablero[f][c]=0; //Vacia el tablero 
+    for(int f=0; f<3; f++) for(int c=0; c<8; c++) if((f+c)%2==1) tablero[f][c]=2; //Coloca fichas negras arriba
+    for(int f=5; f<8; f++) for(int c=0; c<8; c++) if((f+c)%2==1) tablero[f][c]=1; //Coloca fichas blancas abajo
 }
-
-
 
 void MostrarTablero(){
     //Diseño del tablero (colores, numeros de coordenadas, posicion de las fichas)
+    //Colores ANSI
     string RESET="\033[0m";
     string FONDOCLA="\033[47m";
     string FONDOOSC="\033[100m";
@@ -38,8 +37,8 @@ void MostrarTablero(){
     cout<<"\n------- 0  1  2  3  4  5  6  7---\n";
     for(int f=0; f<8; f++){
 
-        cout << " . " << f << " . ";
-        for(int c=0; c<8; c++){
+        cout << " . " << f << " . "; //Bucle fila por fila
+        for(int c=0; c<8; c++){ //Bucle de columnas
             string fondo = ((f+c)%2==0)? FONDOCLA:FONDOOSC;
 
             if(tablero[f][c]==0) cout << fondo << " - " << RESET;
@@ -55,20 +54,19 @@ void MostrarTablero(){
 
 bool Comer(int f, int c){
     //Verifica que la ficha en la columna y fila pueda comer fichas del contrincante
-    int pieza=tablero[f][c]; if(pieza==0) return false;
-    //Aqui revisa las 4 diagonales {-1,-1},{-1,1},{1,-1},{1,1}
+    int pieza=tablero[f][c]; if(pieza==0) return false; //Obtiene el valor de casilla si es vacia aborta
     //Checa que si en la casilla a continuacion hay una ficha del enemigo
     //Checa si dos casillas adelante esta sin ninguna ficha, si esta vacia devuelve true
     //No permite a las fichas de los jugadores ir hacia su punto de partida (que no avancen las blancas para abajo y las negra para arriba)
-    int dirs[4][2]={{-1,-1},{-1,1},{1,-1},{1,1}};
-    for(int d=0; d<4; d++){
+    int dirs[4][2]={{-1,-1},{-1,1},{1,-1},{1,1}}; //Aqui revisa las 4 diagonales {-1,-1},{-1,1},{1,-1},{1,1}
+    for(int d=0; d<4; d++){ //Intera en las 4 direcciones
 
-        int df=dirs[d][0], dc=dirs[d][1];
+        int df=dirs[d][0], dc=dirs[d][1]; //Obtiene el cambio de fila y columna actual
 
-        if(pieza==1 && df>0) continue;
-        if(pieza==2 && df<0) continue;
+        if(pieza==1 && df>0) continue; //Bloque que las blancas avancen para abajo
+        if(pieza==2 && df<0) continue; //Bloque que la negra avance para arriba
 
-        int fm=f+df, cm=c+dc, fd=f+2*df, cd=c+2*dc;
+        int fm=f+df, cm=c+dc, fd=f+2*df, cd=c+2*dc; // Calcula casilla donde esta enemigo y destino final
 
         if(fd<0||fd>=8||cd<0||cd>=8) continue;
         if(tablero[fd][cd]!=0) continue;
@@ -115,26 +113,26 @@ int contarFichas(int turno){
 //Que el jugador no coma nomas una cuando puede comer dos (no se lo permite lo bloquea)
 //Que si se mueve una casilla este correcta la dirreccion de la ficha
 //Que si mueve dos casillas este un enemigo en medio de las dos casillas
-bool esMovimientoValido(int fo, int co, int fd, int cd, int turno){
+bool esMovimientoValido(int filaOri, int colOri, int fd, int cd, int turno){
 
     if(fd<0||fd>=8||cd<0||cd>=8) return false;
     if(tablero[fd][cd]!=0) return false;
-    if(abs(fd-fo)!=abs(cd-co)) return false;
+    if(abs(fd-filaOri)!=abs(cd-colOri)) return false;
 
-    bool Captura=abs(fd-fo)==2;
+    bool Captura=abs(fd-filaOri)==2;
 
     if(ComerAFuerzas(turno) &&!Captura) return false;
 
-    int pieza=tablero[fo][co];
+    int pieza=tablero[filaOri][colOri];
 
-    if(abs(fd-fo)==1){
-        if(pieza==1 && fd>fo) return false;
-        if(pieza==2 && fd<fo) return false;
+    if(abs(fd-filaOri)==1){
+        if(pieza==1 && fd>filaOri) return false;
+        if(pieza==2 && fd<filaOri) return false;
         return true;
     }
 
-    if(abs(fd-fo)==2){
-        int fm=(fo+fd)/2, cm=(co+cd)/2;
+    if(abs(fd-filaOri)==2){
+        int fm=(filaOri+fd)/2, cm=(colOri+cd)/2;
         int enemigo=tablero[fm][cm];
         
         if(turno==1 && enemigo!=2 && enemigo!=4) return false;
@@ -148,12 +146,20 @@ bool esMovimientoValido(int fo, int co, int fd, int cd, int turno){
 //Si pudo comer el jugador con salto doble borrar la ficha del enemigo que estuvo en medio del movimiento
 //Coloca la ficha en el destino que selecciono el jugador
 //Convierte fichas a damas (corona) si ficha blanca llega a la fila 0 se hace 3(B) y si una negra llega a a la fila 7 se hace 4(N)
-void MovimientosTablero(int fo, int co, int fd, int cd){
+void MovimientosTablero(int filaOri, int colOri, int fd, int cd){
+    Mov m;
+    m.filaOri = filaOri; m.colOri = colOri; m.fd = fd; m.cd = cd;
+    m.fichaMov = tablero[filaOri][colOri];
+    m.fichaCom = 0;
 
-    if(abs(fd-fo)==2) tablero[(fo+fd)/2][(co+cd)/2]=0;
+    if(abs(fd-filaOri)==2){
+        m.fichaCom = tablero[(filaOri+fd)/2][(colOri+cd)/2];
+        tablero[(filaOri+fd)/2][(colOri+cd)/2] = 0;
+    } 
 
-    tablero[fd][cd]=tablero[fo][co];
-    tablero[fo][co]=0;
+    historial.push_back(m);
+    tablero[fd][cd]=tablero[filaOri][colOri];
+    tablero[filaOri][colOri]=0;
 
     if(tablero[fd][cd]==1 && fd==0) tablero[fd][cd]=3;
     if(tablero[fd][cd]==2 && fd==7) tablero[fd][cd]=4;
@@ -198,14 +204,14 @@ void GuarPar(const string& archivo){
     file << turnoGua << "\n"; // Turno
 
     for(int f = 0; f < 8; f++){//Tablero completo
-      for(int c = 0; c < 8; c++) file << tablero[f][c] << " ";{
+      for(int c = 0; c < 8; c++){ file << tablero[f][c] << " ";
       }
       file << "\n";
     }
     file << historial.size() << "\n"; //Cantidad de movimiento
     
     for(size_t i = 0; i<historial.size(); i++){ //Cada movimiento
-      file << historial[i].fo << " " << historial[i].co << " "
+      file << historial[i].filaOri << " " << historial[i].colOri << " "
              << historial[i].fd << " " << historial[i].cd << " "
              << historial[i].fichaMov << " " << historial[i].fichaCom << "\n";
     } 
@@ -224,7 +230,7 @@ void CarParti(const string& archivo){
     file >> turnoGua;
 
     for(int f = 0; f < 8; f++){
-        for(int c=0; c<8; c++){
+        for(int c = 0; c < 8; c++){
             file >> tablero[f][c];
         }
     }
@@ -233,7 +239,7 @@ void CarParti(const string& archivo){
 
     for(int i = 0; i < n; i++){
         Mov m;
-        file >> m.fo >> m.co >> m.fd >> m.cd >> m.fichaMov >> m.fichaCom;
+        file >> m.filaOri >> m.colOri >> m.fd >> m.cd >> m.fichaMov >> m.fichaCom;
         historial.push_back(m);
     }
     file.close();
@@ -244,15 +250,15 @@ void CarParti(const string& archivo){
             cout << "No hay movimientos guardados"<< endl;
             return;
         }
-        cout << "++Movimientos guardados++"<< endl;
+        cout << "++++++++++Movimientos guardados+++++++++"<< endl;
         for (size_t i = 0; i < historial.size(); i++){
-            cout << (i + 1) << ") Origen: [" << historial[i].fo << "," << historial[i].co << "] -> Destino: [" << historial[i].fd << "," << historial[i].cd << "]";
+            cout << (i + 1) << ") Origen: [" << historial[i].filaOri << "," << historial[i].colOri << "] -> Destino: [" << historial[i].fd << "," << historial[i].cd << "]";
             if (historial[i].fichaCom != 0){
                 cout << " [Ficha capturada " << historial[i].fichaCom <<"]";
             }
             cout << endl;
         }
-        cout << "++++++++++++++++" << endl;
+        cout << "+++++++++++++++++++++++++++++++++++++++++" << endl;
     }
 //Inica el juego
 //Pone el turno=1
@@ -272,15 +278,14 @@ int main(){
         string nombre; 
         cout << "Nombre del archivo de la partida guardada: ";
         cin >> nombre;
-        CarParti(nombre);
+        CarParti(nombre); //Carga el tablero y historial
     } else{
         InicializarTablero();
         historial.clear();
         turnoGua = 1;
     }
     //Se llena el tablero de 0 y despues se ponen las fichas
-    InicializarTablero(); 
-    int turno = turnoGua, fo,co,fd,cd;
+    int turno = turnoGua, filaOri,colOri,fd,cd;
     char accion;
 
     while(true){
@@ -309,22 +314,33 @@ int main(){
         break; // Sale del while(true) y termina el juego
         }
 
-        
+        if(accion == 'G' || accion == 'g'){
+            string nombre;
+            cout << "Nombre del archivo guardado: ";
+            cin >> nombre;
+            GuarPar(nombre);
+            continue;
+        }
+
+        if(accion == 'H' || accion == 'h'){
+            MostrarHis();
+            continue;
+        }
 
         if(accion != 'O' && accion != 'o'){
             cout << "Opcion incorrecta\n"<<endl;
             continue;
         }
 
-        cout<<"Origen fila y columna ejem *[4 3]*: "<<endl;
-        cin>>fo>>co;
+        cout<<"Origen fila y columna ejem *[4 3]*: ";
+        cin>>filaOri>>colOri;
 
-        if(turno==1 && tablero[fo][co]!=1 && tablero[fo][co]!=3){
+        if(turno==1 && tablero[filaOri][colOri]!=1 && tablero[filaOri][colOri]!=3){
             cout<<"Esa ficha blanca no es tuya, vuelve a seleccionar\n"<<endl;
             continue;
         }
 
-        if(turno==2 && tablero[fo][co]!=2 && tablero[fo][co]!=4){
+        if(turno==2 && tablero[filaOri][colOri]!=2 && tablero[filaOri][colOri]!=4){
             cout<<"Esa ficha negra no es tuya, vuelve a seleccionar\n"<<endl;
             continue;
         }
@@ -334,16 +350,16 @@ int main(){
          cin >> dir;
 
         int sent = 1;
-        if (tablero[fo][co]==3 || tablero[fo][co]==4){
+        if (tablero[filaOri][colOri]==3 || tablero[filaOri][colOri]==4){
             char s;
             cout << "Es una dama. (A) Avanzar o (R) Retroceder"<<endl;
             cin >> s;
             if(s=='R' || s=='r') sent = -1;
         }
 
-        int fm = (turno == 1) ? (fo + (sent * -1)) : (fo + (sent * 1));
-        int cm_Izq = co - 1;
-        int cm_Der = co + 1;
+        int fm = (turno == 1) ? (filaOri + (sent * -1)) : (filaOri + (sent * 1));
+        int cm_Izq = colOri - 1;
+        int cm_Der = colOri + 1;
         int enem = 0;
 
         if (dir == 'I' || dir == 'i'){
@@ -362,15 +378,15 @@ int main(){
         int salto = (enem != 0) ? 2 : 1;
 
         if (turno == 1){
-           fd = fo - (salto * sent);
+           fd = filaOri - (salto * sent);
         } else {
-            fd = fo + (salto * sent);
+            fd = filaOri + (salto * sent);
         }
 
         if (dir == 'I' || dir == 'i'){
-            cd = co - salto;
+            cd = colOri - salto;
         } else {
-            cd = co + salto;
+            cd = colOri + salto;
         }
 
         if (fd < 0 || fd >= 8 || cd < 0 || cd >= 8){
@@ -383,14 +399,15 @@ int main(){
         continue;
         }
 
-        if(esMovimientoValido(fo,co,fd,cd,turno)){
-            MovimientosTablero(fo,co,fd,cd);
+        if(esMovimientoValido(filaOri,colOri,fd,cd,turno)){
+            MovimientosTablero(filaOri,colOri,fd,cd);
 
-            if(abs(fd-fo)==2 && Comer(fd,cd)){
+            if(abs(fd-filaOri)==2 && Comer(fd,cd)){
                 cout<<"¡¡Continua comiendo con la misma ficha!!\n"<<endl;
                 continue;
             }
-            turno=(turno==1)?2:1;
+            turno = (turno == 1)?2:1;
+            turnoGua = turno;
         }else {
             cout<<"Lo siento, no se puede realizar el movimiento deseado\n"<<endl;
         }
