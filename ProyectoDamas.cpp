@@ -3,13 +3,14 @@
 #include <string>
 #include <fstream> //Lee y escribe archivos
 #include <vector>
+#include <windows.h>
 using namespace std;
 
 //Defeni el tablero (el tamaño)
 int tablero[8][8];
 //Diseño 0=Vacio, 1=blanca (b), 2=negra (n), 3=Dama blanca (B), 4=Dama negra (N)
 struct Mov {
-    int filaOri, colOri, fd, cd; //Fila y columna de origen y destino
+    int filaOri, colOri, filaDes, colDes; //Fila y columna de origen y destino
     int fichaMov; //Valor de la ficha que se movio
     int fichaCom; //Valor de la ficha comida
 };
@@ -52,6 +53,12 @@ void MostrarTablero(){
     cout << "------- 0  1  2  3  4  5  6  7---\n";
 }
 
+void ActuTabl(){
+    cout << "\n\n Actualizando el juego......." << endl;
+    Sleep(1000); //1 segundo de es6pera
+    system("cls"); //Limpia pantalla
+}
+
 bool Comer(int f, int c){
     //Verifica que la ficha en la columna y fila pueda comer fichas del contrincante
     int pieza=tablero[f][c]; if(pieza==0) return false; //Obtiene el valor de casilla si es vacia aborta
@@ -66,10 +73,10 @@ bool Comer(int f, int c){
         if(pieza==1 && df>0) continue; //Bloque que las blancas avancen para abajo
         if(pieza==2 && df<0) continue; //Bloque que la negra avance para arriba
 
-        int fm=f+df, cm=c+dc, fd=f+2*df, cd=c+2*dc; // Calcula casilla donde esta enemigo y destino final
+        int fm=f+df, cm=c+dc, filaDes=f+2*df, colDes=c+2*dc; // Calcula casilla donde esta enemigo y destino final
 
-        if(fd<0||fd>=8||cd<0||cd>=8) continue;
-        if(tablero[fd][cd]!=0) continue;
+        if(filaDes<0||filaDes>=8||colDes<0||colDes>=8) continue;
+        if(tablero[filaDes][colDes]!=0) continue;
 
         int enemigo=tablero[fm][cm];
 
@@ -113,26 +120,26 @@ int contarFichas(int turno){
 //Que el jugador no coma nomas una cuando puede comer dos (no se lo permite lo bloquea)
 //Que si se mueve una casilla este correcta la dirreccion de la ficha
 //Que si mueve dos casillas este un enemigo en medio de las dos casillas
-bool esMovimientoValido(int filaOri, int colOri, int fd, int cd, int turno){
+bool esMovimientoValido(int filaOri, int colOri, int filaDes, int colDes, int turno){
 
-    if(fd<0||fd>=8||cd<0||cd>=8) return false;
-    if(tablero[fd][cd]!=0) return false;
-    if(abs(fd-filaOri)!=abs(cd-colOri)) return false;
+    if(filaDes<0||filaDes>=8||colDes<0||colDes>=8) return false;
+    if(tablero[filaDes][colDes]!=0) return false;
+    if(abs(filaDes-filaOri)!=abs(colDes-colOri)) return false;
 
-    bool Captura=abs(fd-filaOri)==2;
+    bool Captura=abs(filaDes-filaOri)==2;
 
     if(ComerAFuerzas(turno) &&!Captura) return false;
 
     int pieza=tablero[filaOri][colOri];
 
-    if(abs(fd-filaOri)==1){
-        if(pieza==1 && fd>filaOri) return false;
-        if(pieza==2 && fd<filaOri) return false;
+    if(abs(filaDes-filaOri)==1){
+        if(pieza==1 && filaDes>filaOri) return false;
+        if(pieza==2 && filaDes<filaOri) return false;
         return true;
     }
 
-    if(abs(fd-filaOri)==2){
-        int fm=(filaOri+fd)/2, cm=(colOri+cd)/2;
+    if(abs(filaDes-filaOri)==2){
+        int fm=(filaOri+filaDes)/2, cm=(colOri+colDes)/2;
         int enemigo=tablero[fm][cm];
         
         if(turno==1 && enemigo!=2 && enemigo!=4) return false;
@@ -146,23 +153,23 @@ bool esMovimientoValido(int filaOri, int colOri, int fd, int cd, int turno){
 //Si pudo comer el jugador con salto doble borrar la ficha del enemigo que estuvo en medio del movimiento
 //Coloca la ficha en el destino que selecciono el jugador
 //Convierte fichas a damas (corona) si ficha blanca llega a la fila 0 se hace 3(B) y si una negra llega a a la fila 7 se hace 4(N)
-void MovimientosTablero(int filaOri, int colOri, int fd, int cd){
+void MovimientosTablero(int filaOri, int colOri, int filaDes, int colDes){
     Mov m;
-    m.filaOri = filaOri; m.colOri = colOri; m.fd = fd; m.cd = cd;
+    m.filaOri = filaOri; m.colOri = colOri; m.filaDes = filaDes; m.colDes = colDes;
     m.fichaMov = tablero[filaOri][colOri];
     m.fichaCom = 0;
 
-    if(abs(fd-filaOri)==2){
-        m.fichaCom = tablero[(filaOri+fd)/2][(colOri+cd)/2];
-        tablero[(filaOri+fd)/2][(colOri+cd)/2] = 0;
+    if(abs(filaDes-filaOri)==2){
+        m.fichaCom = tablero[(filaOri+filaDes)/2][(colOri+colDes)/2];
+        tablero[(filaOri+filaDes)/2][(colOri+colDes)/2] = 0;
     } 
 
     historial.push_back(m);
-    tablero[fd][cd]=tablero[filaOri][colOri];
+    tablero[filaDes][colDes]=tablero[filaOri][colOri];
     tablero[filaOri][colOri]=0;
 
-    if(tablero[fd][cd]==1 && fd==0) tablero[fd][cd]=3;
-    if(tablero[fd][cd]==2 && fd==7) tablero[fd][cd]=4;
+    if(tablero[filaDes][colDes]==1 && filaDes==0) tablero[filaDes][colDes]=3;
+    if(tablero[filaDes][colDes]==2 && filaDes==7) tablero[filaDes][colDes]=4;
 }
 
 bool TieneMovimientos(int turno){
@@ -171,8 +178,9 @@ bool TieneMovimientos(int turno){
 
         for(int c=0; c<8; c++){
 
-            int p = tablero[f][c];
+            int p = tablero[f][c]; //Obtiene movimientos
 
+            //Ignora las fichas del contrincante
             if(turno==1 && (p!=1 && p!=3)){
             continue;
             } 
@@ -181,17 +189,18 @@ bool TieneMovimientos(int turno){
             continue;
             } 
             
-            int dirs[4][2]={{-1,-1},{-1,1},{1,-1},{1,1}};
+            int dirs[4][2]={{-1,-1},{-1,1},{1,-1},{1,1}}; //Revisa las 4 diagonales
 
             for(int d=0; d<4; d++){
-                int nf=f+dirs[d][0], nc=c+dirs[d][1];
+                int nf=f+dirs[d][0], nc=c+dirs[d][1]; //Casilla diagonal adyacente
 
-                if(nf>=0&&nf<8&&nc>=0&&nc<8 && tablero[nf][nc]==0) return true;
-                int nf2=f+2*dirs[d][0], nc2=c+2*dirs[d][1];
+                if(nf>=0&&nf<8&&nc>=0&&nc<8 && tablero[nf][nc]==0) return true; //Casilla vacia en el tablero
+                int nf2=f+2*dirs[d][0], nc2=c+2*dirs[d][1];//Casila de salto(doble diagonal)
+                //Hay enemigo enmedio y destino libre
                 if(nf2>=0&&nf2<8&&nc2>=0&&nc2<8 && tablero[nf2][nc2]==0 && tablero[nf][nc]!=0 && tablero[nf][nc]!=p) return true;
             }
         }
-    return false;
+    return false; //Ninguna ficha se movio
 }
 
 
@@ -212,7 +221,7 @@ void GuarPar(const string& archivo){
     
     for(size_t i = 0; i<historial.size(); i++){ //Cada movimiento
       file << historial[i].filaOri << " " << historial[i].colOri << " "
-             << historial[i].fd << " " << historial[i].cd << " "
+             << historial[i].filaDes << " " << historial[i].colDes << " "
              << historial[i].fichaMov << " " << historial[i].fichaCom << "\n";
     } 
     file.close();
@@ -220,15 +229,16 @@ void GuarPar(const string& archivo){
 }
 
 void CarParti(const string& archivo){
-    ifstream file(archivo);
+    ifstream file(archivo); //Abre archivo
     if(!file){
         cout << "No existe ninguna partida guardada\n";
         return;
     }
-    historial.clear();
+    historial.clear(); //Vaia el historial anterior
 
-    file >> turnoGua;
+    file >> turnoGua; //De que turno se reanuda el juego
 
+    //Recorre todo el tablero
     for(int f = 0; f < 8; f++){
         for(int c = 0; c < 8; c++){
             file >> tablero[f][c];
@@ -239,7 +249,7 @@ void CarParti(const string& archivo){
 
     for(int i = 0; i < n; i++){
         Mov m;
-        file >> m.filaOri >> m.colOri >> m.fd >> m.cd >> m.fichaMov >> m.fichaCom;
+        file >> m.filaOri >> m.colOri >> m.filaDes >> m.colDes >> m.fichaMov >> m.fichaCom;
         historial.push_back(m);
     }
     file.close();
@@ -252,7 +262,7 @@ void CarParti(const string& archivo){
         }
         cout << "++++++++++Movimientos guardados+++++++++"<< endl;
         for (size_t i = 0; i < historial.size(); i++){
-            cout << (i + 1) << ") Origen: [" << historial[i].filaOri << "," << historial[i].colOri << "] -> Destino: [" << historial[i].fd << "," << historial[i].cd << "]";
+            cout << (i + 1) << ") Origen: [" << historial[i].filaOri << "," << historial[i].colOri << "] -> Destino: [" << historial[i].filaDes << "," << historial[i].colDes << "]";
             if (historial[i].fichaCom != 0){
                 cout << " [Ficha capturada " << historial[i].fichaCom <<"]";
             }
@@ -285,7 +295,7 @@ int main(){
         turnoGua = 1;
     }
     //Se llena el tablero de 0 y despues se ponen las fichas
-    int turno = turnoGua, filaOri,colOri,fd,cd;
+    int turno = turnoGua, filaOri,colOri,filaDes,colDes;
     char accion;
 
     while(true){
@@ -378,36 +388,40 @@ int main(){
         int salto = (enem != 0) ? 2 : 1;
 
         if (turno == 1){
-           fd = filaOri - (salto * sent);
+           filaDes = filaOri - (salto * sent);
         } else {
-            fd = filaOri + (salto * sent);
+            filaDes = filaOri + (salto * sent);
         }
 
         if (dir == 'I' || dir == 'i'){
-            cd = colOri - salto;
+            colDes = colOri - salto;
         } else {
-            cd = colOri + salto;
+            colDes = colOri + salto;
         }
 
-        if (fd < 0 || fd >= 8 || cd < 0 || cd >= 8){
+        if (filaDes < 0 || filaDes >= 8 || colDes < 0 || colDes >= 8){
             cout << "Moviento fuera del tablero\n"<<endl;
             continue;
         }
 
-        if (enem == 0 && tablero[fd][cd] != 0){
+        if (enem == 0 && tablero[filaDes][colDes] != 0){
         cout << "Espacio ocupado\n"<<endl;
         continue;
         }
 
-        if(esMovimientoValido(filaOri,colOri,fd,cd,turno)){
-            MovimientosTablero(filaOri,colOri,fd,cd);
+        if(esMovimientoValido(filaOri,colOri,filaDes,colDes,turno)){
+            MovimientosTablero(filaOri,colOri,filaDes,colDes);
 
-            if(abs(fd-filaOri)==2 && Comer(fd,cd)){
+            turno = (turno == 1)?2:1;
+            turnoGua = turno;
+
+            ActuTabl();
+
+            if(abs(filaDes-filaOri)==2 && Comer(filaDes,colDes)){
                 cout<<"¡¡Continua comiendo con la misma ficha!!\n"<<endl;
                 continue;
             }
-            turno = (turno == 1)?2:1;
-            turnoGua = turno;
+            
         }else {
             cout<<"Lo siento, no se puede realizar el movimiento deseado\n"<<endl;
         }

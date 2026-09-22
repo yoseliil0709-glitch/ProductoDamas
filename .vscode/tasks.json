@@ -5,7 +5,7 @@
             "label": "C/C++: mingw-get-setup.exe compilar archivo activo",
             "command": "c:\\Users\\cheto\\Downloads\\mingw-get-setup.exe",
             "args": [
-                "-fdiagnostics-color=always",
+                "-filaDesiagnostics-color=always",
                 "-g",
                 "${file}",
                 "-o",
