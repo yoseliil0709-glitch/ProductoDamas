@@ -1,17 +1,29 @@
 #include <iostream>
 #include <cstdlib>
 #include <string>
+#include <fstream> //Lee y escribe archivos
+#include <vector>
 using namespace std;
 
 //Defeni el tablero (el tamaño)
 int tablero[8][8];
 //Diseño 0=Vacio, 1=blanca (b), 2=negra (n), 3=Dama blanca (B), 4=Dama negra (N)
+struct Mov {
+    int fo, co, fd, cd; //Fila y columna de origen y destino
+    int fichaMov; //Valor de la ficha que se movio
+    int fichaCom; //Valor de la ficha comida
+};
+
+vector<Mov> historial; //Guarda los movimientos
+int turnoGua = 1; //Turno actual para reanudar
 
 void InicializarTablero(){
     for(int f=0; f<8; f++) for(int c=0; c<8; c++) tablero[f][c]=0;
     for(int f=0; f<3; f++) for(int c=0; c<8; c++) if((f+c)%2==1) tablero[f][c]=2;
     for(int f=5; f<8; f++) for(int c=0; c<8; c++) if((f+c)%2==1) tablero[f][c]=1;
 }
+
+
 
 void MostrarTablero(){
     //Diseño del tablero (colores, numeros de coordenadas, posicion de las fichas)
@@ -176,6 +188,72 @@ bool TieneMovimientos(int turno){
     return false;
 }
 
+
+void GuarPar(const string& archivo){
+    ofstream file(archivo);
+    if(!file){
+        cout << "No se puede abrir el archivo\n";
+        return;
+    }
+    file << turnoGua << "\n"; // Turno
+
+    for(int f = 0; f < 8; f++){//Tablero completo
+      for(int c = 0; c < 8; c++) file << tablero[f][c] << " ";{
+      }
+      file << "\n";
+    }
+    file << historial.size() << "\n"; //Cantidad de movimiento
+    
+    for(size_t i = 0; i<historial.size(); i++){ //Cada movimiento
+      file << historial[i].fo << " " << historial[i].co << " "
+             << historial[i].fd << " " << historial[i].cd << " "
+             << historial[i].fichaMov << " " << historial[i].fichaCom << "\n";
+    } 
+    file.close();
+    cout << "Partida guardada en: " << archivo << endl;
+}
+
+void CarParti(const string& archivo){
+    ifstream file(archivo);
+    if(!file){
+        cout << "No existe ninguna partida guardada\n";
+        return;
+    }
+    historial.clear();
+
+    file >> turnoGua;
+
+    for(int f = 0; f < 8; f++){
+        for(int c=0; c<8; c++){
+            file >> tablero[f][c];
+        }
+    }
+    int n;
+    file >> n;
+
+    for(int i = 0; i < n; i++){
+        Mov m;
+        file >> m.fo >> m.co >> m.fd >> m.cd >> m.fichaMov >> m.fichaCom;
+        historial.push_back(m);
+    }
+    file.close();
+    cout << "Partida cargada desde: " << archivo << endl;
+}
+    void MostrarHis(){
+        if (historial.empty()){
+            cout << "No hay movimientos guardados"<< endl;
+            return;
+        }
+        cout << "++Movimientos guardados++"<< endl;
+        for (size_t i = 0; i < historial.size(); i++){
+            cout << (i + 1) << ") Origen: [" << historial[i].fo << "," << historial[i].co << "] -> Destino: [" << historial[i].fd << "," << historial[i].cd << "]";
+            if (historial[i].fichaCom != 0){
+                cout << " [Ficha capturada " << historial[i].fichaCom <<"]";
+            }
+            cout << endl;
+        }
+        cout << "++++++++++++++++" << endl;
+    }
 //Inica el juego
 //Pone el turno=1
 //Repite la accion de mostrar
@@ -187,9 +265,22 @@ bool TieneMovimientos(int turno){
 //Permite al jugador seguir comiendo con la misma ficha sin cambiar de turno
 //Si no se puede se cambia al otro jugador
 int main(){
+    char opc;
+    cout << "Partida nueva (N) o partida guardada (G): ";
+    cin >> opc;
+    if (opc == 'G' || opc == 'g'){
+        string nombre; 
+        cout << "Nombre del archivo de la partida guardada: ";
+        cin >> nombre;
+        CarParti(nombre);
+    } else{
+        InicializarTablero();
+        historial.clear();
+        turnoGua = 1;
+    }
     //Se llena el tablero de 0 y despues se ponen las fichas
     InicializarTablero(); 
-    int turno = 1, fo,co,fd,cd;
+    int turno = turnoGua, fo,co,fd,cd;
     char accion;
 
     while(true){
@@ -210,13 +301,15 @@ int main(){
         }
         
         cout<<"\nTurno "<<(turno==1?"BLANCAS (b)":"NEGRAS (n)")<<endl;
-        cout << "(O) Origen | (X) Rendirse"<<endl;
+        cout << "(O) Origen | (X) Rendirse | (G) Guardar | (H) Historial " <<endl;
         cin >> accion;
 
         if(accion=='X' || accion=='x'){
         cout << "\nGanan " << (turno==1?"NEGRAS":"BLANCAS") << " por rendicion\n"<<endl;
         break; // Sale del while(true) y termina el juego
         }
+
+        
 
         if(accion != 'O' && accion != 'o'){
             cout << "Opcion incorrecta\n"<<endl;
