@@ -4,8 +4,15 @@
 #include <fstream> //Lee y escribe archivos
 #include <vector>
 #include <windows.h>
+#include <chrono>
+
+using namespace std::chrono;
 using namespace std;
 
+int tiempo[3] = {0, 120, 120};
+int turno = 1;
+steady_clock::time_point tini;
+const int limtiem = 120;
 //Defeni el tablero (el tamaño)
 int tablero[8][8];
 //Diseño 0=Vacio, 1=blanca (b), 2=negra (n), 3=Dama blanca (B), 4=Dama negra (N)
@@ -224,6 +231,7 @@ void GuarPar(const string& archivo){
              << historial[i].filaDes << " " << historial[i].colDes << " "
              << historial[i].fichaMov << " " << historial[i].fichaCom << "\n";
     } 
+    file << tiempo[1] << " " << tiempo[2] << "\n";
     file.close();
     cout << "Partida guardada en: " << archivo << endl;
 }
@@ -252,6 +260,7 @@ void CarParti(const string& archivo){
         file >> m.filaOri >> m.colOri >> m.filaDes >> m.colDes >> m.fichaMov >> m.fichaCom;
         historial.push_back(m);
     }
+    file >> tiempo[1] >> tiempo[2];
     file.close();
     cout << "Partida cargada desde: " << archivo << endl;
 }
@@ -270,6 +279,17 @@ void CarParti(const string& archivo){
         }
         cout << "+++++++++++++++++++++++++++++++++++++++++" << endl;
     }
+
+    void error(const string& msg){
+        system("cls");
+        MostrarTablero();
+        cout << "\nFichas blancas: " << contarFichas(1) << "| Negras: " << contarFichas(2) << endl;
+        cout << "Tiempo blancas: " << tiempo[1] << "s | Negras: " << tiempo[2] << "s\n";
+        cout << "\nTurno " << (turno==1? "BLANCAS (b)":"NEGRAS(n)") << endl;
+        cout << "(O) Origen | (X) Rendirse | (G) Guardar | (H) Historial " << endl;
+        cout << "\n ERROR " << msg << endl;
+    }
+
 //Inica el juego
 //Pone el turno=1
 //Repite la accion de mostrar
@@ -295,19 +315,22 @@ int main(){
         turnoGua = 1;
     }
     //Se llena el tablero de 0 y despues se ponen las fichas
-    int turno = turnoGua, filaOri,colOri,filaDes,colDes;
+    turno = turnoGua;
+    int filaOri,colOri,filaDes,colDes;
     char accion;
 
     while(true){
         MostrarTablero();
-        cout<<"\nFichas Blancas: "<<contarFichas(1)<<" | Negras: "<<contarFichas(2)<<endl;
+        tini = steady_clock::now(); //Empieza el tiempo
+        cout << "\nFichas Blancas: "<<contarFichas(1)<<" | Negras: "<<contarFichas(2)<<endl;
+        cout << "Tiempo blancas: "<< tiempo[1] << "s | Negras: " << tiempo[2] << "s\n";
 
         if(contarFichas(1)==0){
-            cout<<"\nGANAN NEGRAS\n"; break;
+            cout << "\nGANAN NEGRAS\n"; break;
         }
         
         if(contarFichas(2)==0){
-            cout<<"\nGANAN BLANCAS\n"; break;
+            cout << "\nGANAN BLANCAS\n"; break;
         }
 
         if(!TieneMovimientos(turno)){
@@ -318,6 +341,8 @@ int main(){
         cout<<"\nTurno "<<(turno==1?"BLANCAS (b)":"NEGRAS (n)")<<endl;
         cout << "(O) Origen | (X) Rendirse | (G) Guardar | (H) Historial " <<endl;
         cin >> accion;
+
+        int turnojug = turno; //Guarda el turno actual
 
         if(accion=='X' || accion=='x'){
         cout << "\nGanan " << (turno==1?"NEGRAS":"BLANCAS") << " por rendicion\n"<<endl;
@@ -338,20 +363,20 @@ int main(){
         }
 
         if(accion != 'O' && accion != 'o'){
-            cout << "Opcion incorrecta\n"<<endl;
+            error("Opcion incorrecta\n");
             continue;
         }
 
-        cout<<"Origen fila y columna ejem *[4 3]*: ";
-        cin>>filaOri>>colOri;
+        cout << "Origen fila y columna *[4 3]*: ";
+        cin >> filaOri >> colOri;
 
         if(turno==1 && tablero[filaOri][colOri]!=1 && tablero[filaOri][colOri]!=3){
-            cout<<"Esa ficha blanca no es tuya, vuelve a seleccionar\n"<<endl;
+            error("Esa ficha blanca no es tuya, vuelve a seleccionar\n");
             continue;
         }
 
         if(turno==2 && tablero[filaOri][colOri]!=2 && tablero[filaOri][colOri]!=4){
-            cout<<"Esa ficha negra no es tuya, vuelve a seleccionar\n"<<endl;
+            error("Esa ficha negra no es tuya, vuelve a seleccionar\n");
             continue;
         }
 
@@ -381,7 +406,7 @@ int main(){
                 enem = tablero[fm][cm_Der];
             }
          } else {
-            cout << "Direccion incorrecta\n"<<endl;
+            error("Direccion incorrecta\n");
             continue;
          }         
 
@@ -400,12 +425,12 @@ int main(){
         }
 
         if (filaDes < 0 || filaDes >= 8 || colDes < 0 || colDes >= 8){
-            cout << "Moviento fuera del tablero\n"<<endl;
+            error("Moviento fuera del tablero\n");
             continue;
         }
 
         if (enem == 0 && tablero[filaDes][colDes] != 0){
-        cout << "Espacio ocupado\n"<<endl;
+        error("Espacio ocupado\n");
         continue;
         }
 
@@ -423,7 +448,13 @@ int main(){
             }
             
         }else {
-            cout<<"Lo siento, no se puede realizar el movimiento deseado\n"<<endl;
+            error("Lo siento, no se puede realizar el movimiento deseado\n");
+        }
+        int gastado = (int)duration_cast<seconds> (steady_clock::now()-tini).count();
+        tiempo[turnojug] -= gastado;
+        if(tiempo[turnojug] <= 0){
+            cout << "\nSE ACABO EL TIEMPO. GANAN " << (turnojug == 1?"NEGRAS":"BLANCAS") << endl;
+            break;
         }
     }
     return 0;
