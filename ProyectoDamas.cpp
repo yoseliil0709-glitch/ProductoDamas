@@ -1,3 +1,4 @@
+#define _WIN32_WINNT 0x0600
 #include <iostream>
 #include <cstdlib>
 #include <string>
@@ -5,6 +6,7 @@
 #include <vector>
 #include <windows.h>
 #include <chrono>
+#include <conio.h>
 
 using namespace std::chrono;
 using namespace std;
@@ -25,12 +27,26 @@ struct Mov {
 vector<Mov> historial; //Guarda los movimientos
 int turnoGua = 1; //Turno actual para reanudar
 
+int curF = 4, curC = 3; //Posicion del cursor(flechas)
+int oriF = -1, oriC = -1; //Ficha seleccionada
+int desF = -1, desC = -1;
+bool haydestino = false; //True cuando ya presiono Enter
+
 void InicializarTablero(){
     for(int f=0; f<8; f++) for(int c=0; c<8; c++) tablero[f][c]=0; //Vacia el tablero 
     for(int f=0; f<3; f++) for(int c=0; c<8; c++) if((f+c)%2==1) tablero[f][c]=2; //Coloca fichas negras arriba
     for(int f=5; f<8; f++) for(int c=0; c<8; c++) if((f+c)%2==1) tablero[f][c]=1; //Coloca fichas blancas abajo
 }
 
+int LeerTecla(){
+        int t = _getch();
+        if(t == 0 || t == 224) t = 256 + _getch();
+        return t;
+    }
+
+void Esperar(float seg){
+    Sleep((DWORD)(seg * 1000));
+}
 void MostrarTablero(){
     //Diseño del tablero (colores, numeros de coordenadas, posicion de las fichas)
     //Colores ANSI
@@ -48,6 +64,10 @@ void MostrarTablero(){
         cout << " . " << f << " . "; //Bucle fila por fila
         for(int c=0; c<8; c++){ //Bucle de columnas
             string fondo = ((f+c)%2==0)? FONDOCLA:FONDOOSC;
+            
+            if(curF==f && curC==c)   fondo = "\033[107m"; //Cursor de color gris
+            if(oriF==f && oriC==c) fondo = "\033[43m"; //Amarillo(ficha seleccionada)
+            if(haydestino && desF==f && desC==c) fondo = "\033[46m"; //Direccion confirmada
 
             if(tablero[f][c]==0) cout << fondo << " - " << RESET;
             else if(tablero[f][c]==1) cout << fondo << B << " b " << RESET;
@@ -301,9 +321,14 @@ void CarParti(const string& archivo){
 //Permite al jugador seguir comiendo con la misma ficha sin cambiar de turno
 //Si no se puede se cambia al otro jugador
 int main(){
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD m = 0;
+    GetConsoleMode(h, &m);
+    SetConsoleMode(h, m | 0x0004);
     char opc;
     cout << "Partida nueva (N) o partida guardada (G): ";
     cin >> opc;
+
     if (opc == 'G' || opc == 'g'){
         string nombre; 
         cout << "Nombre del archivo de la partida guardada: ";
@@ -314,6 +339,7 @@ int main(){
         historial.clear();
         turnoGua = 1;
     }
+
     //Se llena el tablero de 0 y despues se ponen las fichas
     turno = turnoGua;
     int filaOri,colOri,filaDes,colDes;
@@ -367,72 +393,49 @@ int main(){
             continue;
         }
 
-        cout << "Origen fila y columna *[4 3]*: ";
-        cin >> filaOri >> colOri;
+        // ===== SELECCIÓN CON FLECHAS =====
+oriF = -1; oriC = -1; desF = -1; desC = -1; haydestino = false;
 
-        if(turno==1 && tablero[filaOri][colOri]!=1 && tablero[filaOri][colOri]!=3){
-            error("Esa ficha blanca no es tuya, vuelve a seleccionar\n");
-            continue;
-        }
+while(true){
+    MostrarTablero();
+    cout << "\nMuevete con las FLECHAS | ENTER: seleccionar/confirmar | ESC: cancelar\n";
 
-        if(turno==2 && tablero[filaOri][colOri]!=2 && tablero[filaOri][colOri]!=4){
-            error("Esa ficha negra no es tuya, vuelve a seleccionar\n");
-            continue;
-        }
+    int t = LeerTecla();
 
-         char dir;
-         cout << "(I) Izquierda o (D) Derecha: "<<endl;
-         cin >> dir;
+    if(t == 27){ accion = 'X'; break; }        // ESC cancela el turno
 
-        int sent = 1;
-        if (tablero[filaOri][colOri]==3 || tablero[filaOri][colOri]==4){
-            char s;
-            cout << "Es una dama. (A) Avanzar o (R) Retroceder"<<endl;
-            cin >> s;
-            if(s=='R' || s=='r') sent = -1;
-        }
+    if(t == 256+72 && curF > 0) curF--;        // ↑
+    if(t == 256+80 && curF < 7) curF++;        // ↓
+    if(t == 256+75 && curC > 0) curC--;        // ←
+    if(t == 256+77 && curC < 7) curC++;        // →
 
-        int fm = (turno == 1) ? (filaOri + (sent * -1)) : (filaOri + (sent * 1));
-        int cm_Izq = colOri - 1;
-        int cm_Der = colOri + 1;
-        int enem = 0;
-
-        if (dir == 'I' || dir == 'i'){
-            if (fm >= 0 && fm < 8 && cm_Izq >= 0 && cm_Izq < 8){
-                enem = tablero[fm][cm_Izq];
+    if(t == 13){ // ENTER
+        if(!haydestino){
+            // Primera vez: selecciona ficha (se pone amarilla)
+            if(turno==1 && tablero[curF][curC]!=1 && tablero[curF][curC]!=3){
+                error("Esa ficha blanca no es tuya"); continue;
             }
-         } else if (dir == 'D' || dir == 'd'){
-            if (fm >= 0 && fm < 8 && cm_Der >= 0 && cm_Der < 8){
-                enem = tablero[fm][cm_Der];
+            if(turno==2 && tablero[curF][curC]!=2 && tablero[curF][curC]!=4){
+                error("Esa ficha negra no es tuya"); continue;
             }
-         } else {
-            error("Direccion incorrecta\n");
-            continue;
-         }         
-
-        int salto = (enem != 0) ? 2 : 1;
-
-        if (turno == 1){
-           filaDes = filaOri - (salto * sent);
+            oriF = curF; oriC = curC;
         } else {
-            filaDes = filaOri + (salto * sent);
+            // Confirma destino (ya está CIAN)
+            break;
         }
+    }
 
-        if (dir == 'I' || dir == 'i'){
-            colDes = colOri - salto;
-        } else {
-            colDes = colOri + salto;
-        }
+    // Si ya hay ficha seleccionada y nos movemos, marcamos destino tentativo
+    if(oriF != -1 && (t==256+72||t==256+80||t==256+75||t==256+77)){
+        desF = curF; desC = curC; haydestino = true;
+    }
+}
 
-        if (filaDes < 0 || filaDes >= 8 || colDes < 0 || colDes >= 8){
-            error("Moviento fuera del tablero\n");
-            continue;
-        }
+if(accion == 'X') break;
 
-        if (enem == 0 && tablero[filaDes][colDes] != 0){
-        error("Espacio ocupado\n");
-        continue;
-        }
+filaOri = oriF; colOri = oriC;
+filaDes = desF; colDes = desC;
+// ===== FIN SELECCIÓN =====
 
         if(esMovimientoValido(filaOri,colOri,filaDes,colDes,turno)){
             MovimientosTablero(filaOri,colOri,filaDes,colDes);
