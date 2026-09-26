@@ -65,10 +65,16 @@ void MostrarTablero(){
         for(int c=0; c<8; c++){ //Bucle de columnas
             string fondo = ((f+c)%2==0)? FONDOCLA:FONDOOSC;
             
-            if(curF==f && curC==c)   fondo = "\033[107m"; //Cursor de color gris
-            if(oriF==f && oriC==c) fondo = "\033[43m"; //Amarillo(ficha seleccionada)
-            if(haydestino && desF==f && desC==c) fondo = "\033[46m"; //Direccion confirmada
-
+            if(oriF==f && oriC==c){
+             fondo = "\033[43m\033[30m"; //Fondo amarillo texto negro
+            }
+            if(haydestino && desF==f && desC==c){
+             fondo = "\033[46m\033[30m"; //Fondo cian y texto negro
+            }
+            if(curF==f && curC==c && !(oriF==f && oriC==c)) {
+             fondo = "\033[44;1m\033[97;1m"; //Azul fuerte + texto blanco
+            }
+            
             if(tablero[f][c]==0) cout << fondo << " - " << RESET;
             else if(tablero[f][c]==1) cout << fondo << B << " b " << RESET;
             else if(tablero[f][c]==2) cout << fondo << N << " n " << RESET;
@@ -393,10 +399,11 @@ int main(){
             continue;
         }
 
-        // ===== SELECCIÓN CON FLECHAS =====
+        
 oriF = -1; oriC = -1; desF = -1; desC = -1; haydestino = false;
 
 while(true){
+    system("cls");
     MostrarTablero();
     cout << "\nMuevete con las FLECHAS | ENTER: seleccionar/confirmar | ESC: cancelar\n";
 
