@@ -409,14 +409,14 @@ while(true){
 
     int t = LeerTecla();
 
-    if(t == 27){ accion = 'X'; break; }        // ESC cancela el turno
+    if(t == 27){ accion = 'X'; break; }  
 
-    if(t == 256+72 && curF > 0) curF--;        // ↑
-    if(t == 256+80 && curF < 7) curF++;        // ↓
-    if(t == 256+75 && curC > 0) curC--;        // ←
-    if(t == 256+77 && curC < 7) curC++;        // →
+    if(t == 256+72 && curF > 0) curF--;       
+    if(t == 256+80 && curF < 7) curF++;        
+    if(t == 256+75 && curC > 0) curC--;       
+    if(t == 256+77 && curC < 7) curC++;        
 
-    if(t == 13){ // ENTER
+    if(t == 13){
         if(!haydestino){
             // Primera vez: selecciona ficha (se pone amarilla)
             if(turno==1 && tablero[curF][curC]!=1 && tablero[curF][curC]!=3){
@@ -432,7 +432,7 @@ while(true){
         }
     }
 
-    // Si ya hay ficha seleccionada y nos movemos, marcamos destino tentativo
+    // Si ya hay ficha seleccionada y se mueve, marca destino posible
     if(oriF != -1 && (t==256+72||t==256+80||t==256+75||t==256+77)){
         desF = curF; desC = curC; haydestino = true;
     }
@@ -442,7 +442,6 @@ if(accion == 'X') break;
 
 filaOri = oriF; colOri = oriC;
 filaDes = desF; colDes = desC;
-// ===== FIN SELECCIÓN =====
 
         if(esMovimientoValido(filaOri,colOri,filaDes,colDes,turno)){
             MovimientosTablero(filaOri,colOri,filaDes,colDes);
